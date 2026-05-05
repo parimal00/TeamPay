@@ -16,12 +16,10 @@ class CheckoutController extends Controller
             'interval' => ['required', 'in:monthly,yearly'],
         ]);
 
-        $stripePriceId = 'price_1T6qyRSI4HFHecW6C96GdEU3';
-
-        $quantity = 1;
+        $stripePriceId = config("plans.{$data['plan_key']}.prices.{$data['interval']}");
 
         $checkout =  $request->user()
-            ->newSubscription('default', 'price_1T6qyRSI4HFHecW6C96GdEU3')
+            ->newSubscription('default', $stripePriceId)
             ->checkout([
                 'success_url' => route('checkout-success'),
                 'cancel_url' => route('checkout-cancel'),

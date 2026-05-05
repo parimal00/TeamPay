@@ -53,6 +53,7 @@ export default function Pricing({
             ...data,
             plan_key: planKey,
         }));
+
         checkout.post('/billing/checkout');
     };
 
