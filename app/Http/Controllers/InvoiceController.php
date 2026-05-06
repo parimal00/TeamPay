@@ -18,13 +18,28 @@ class InvoiceController extends Controller
                 'date' => $invoice->date()->toDateString(),
                 'total' => $invoice->total(),
                 'status' => $invoice->status,
-                'download_url' => route('billing.invoices') . '?download=' . $invoice->id,
+                'download_url' => route('billing.invoices.download') . '?download=' . $invoice->id,
             ])->values()
             : collect();
 
         return Inertia::render('billing/invoices', [
             'invoices' => $invoices,
             'billingEnabled' => method_exists($user, 'invoices'),
+        ]);
+    }
+
+    public function download(Request $request){
+        $user = $request->user();
+
+        if (!method_exists($user, 'downloadInvoice')) {
+            abort(404);
+        }
+
+        $invoiceId = $request->query('download');
+
+        return $user->downloadInvoice($invoiceId, [
+            'vendor' => config('app.name'),
+            'product' => 'Subscription',
         ]);
     }
 }

@@ -46,6 +46,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::post('/billing/portal', [PortalController::class, 'store'])->name('billing.portal');
     Route::get('/billing/invoices', [InvoiceController::class, 'index'])->name('billing.invoices');
+    Route::get('/billing/invoices/download', [InvoiceController::class, 'download'])->name('billing.invoices.download');    
 });
 
 // Stripe webhook (NO auth middleware)
