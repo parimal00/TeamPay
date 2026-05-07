@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\BillingSubscriptions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -28,7 +29,7 @@ class CheckoutController extends Controller
         }
 
         $checkout =  $request->user()
-            ->newSubscription('default', $stripePriceId)
+            ->newSubscription(BillingSubscriptions::TEAM, $stripePriceId)
             ->checkout([
                 'success_url' => route('billing.success'),
                 'cancel_url' => route('billing.cancel'),

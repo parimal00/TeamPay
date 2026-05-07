@@ -1,6 +1,7 @@
 import { Transition } from '@headlessui/react';
 import { Form, Head } from '@inertiajs/react';
 import { useRef } from 'react';
+import PasswordController from '@/actions/App/Http/Controllers/Settings/PasswordController';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -10,7 +11,6 @@ import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { edit } from '@/routes/user-password';
 import type { BreadcrumbItem } from '@/types';
-import PasswordController from '@/actions/App/Http/Controllers/Settings/PasswordController';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {

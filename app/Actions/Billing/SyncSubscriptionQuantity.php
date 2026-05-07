@@ -4,6 +4,7 @@ namespace App\Actions\Billing;
 
 use App\Models\Team;
 use App\Models\User;
+use App\Support\BillingSubscriptions;
 
 class SyncSubscriptionQuantity
 {
@@ -13,8 +14,8 @@ class SyncSubscriptionQuantity
             return;
         }
 
-        // Cashier: default subscription name is "default"
-        $subscription = $owner->subscription('default');
+        // Cashier subscription used for team seats.
+        $subscription = $owner->subscription(BillingSubscriptions::TEAM);
 
         if (!$subscription || !$subscription->valid()) {
             return;

@@ -1,4 +1,4 @@
-import { Head, Link, usePage } from '@inertiajs/react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import {
     ArrowRight,
     CreditCard,
@@ -51,6 +51,9 @@ type SubscriptionSummary = {
     interval: string | null;
     renewal_date: string | null;
     seat_quantity: number;
+    can_manage_billing: boolean;
+    can_cancel: boolean;
+    can_resume: boolean;
 } | null;
 
 const pricePreview: Record<string, { monthly: string; yearly: string }> = {
@@ -68,9 +71,11 @@ export default function Dashboard({
     subscription: SubscriptionSummary;
 }) {
     const { auth, flash } = usePage().props as {
-        auth: { user: { name: string } };
+        auth: { user: { id: number; name: string } };
         flash?: { success?: string; error?: string };
     };
+    const cancelSubscription = useForm({});
+    const resumeSubscription = useForm({});
     const planEntries = Object.entries(plans);
     const subscriptionStatus = subscription?.status ?? 'none';
     const subscriptionPlanName = subscription?.plan_name ?? 'No active plan';
@@ -82,6 +87,11 @@ export default function Dashboard({
           })
         : '—';
     const seatQuantity = subscription?.seat_quantity ?? (team ? team.seat_count : 0);
+    const canManageBilling = subscription?.can_manage_billing ?? false;
+    const canCancelSubscription = subscription?.can_cancel ?? false;
+    const canResumeSubscription = subscription?.can_resume ?? false;
+    const billingActionBusy =
+        cancelSubscription.processing || resumeSubscription.processing;
     const statusTone: Record<string, string> = {
         trialing: 'bg-blue-500/15 text-blue-700 dark:text-blue-300',
         active: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
@@ -166,6 +176,47 @@ export default function Dashboard({
                                             {seatQuantity}
                                         </span>
                                     </div>
+                                    <div className="flex flex-wrap gap-2 pt-1">
+                                        <Button
+                                            variant="outline"
+                                            disabled={
+                                                billingActionBusy ||
+                                                !canCancelSubscription
+                                            }
+                                            onClick={() =>
+                                                cancelSubscription.post(
+                                                    '/billing/subscription/cancel',
+                                                    { preserveScroll: true },
+                                                )
+                                            }
+                                        >
+                                            {cancelSubscription.processing
+                                                ? 'Cancelling...'
+                                                : 'Cancel subscription'}
+                                        </Button>
+                                        <Button
+                                            disabled={
+                                                billingActionBusy ||
+                                                !canResumeSubscription
+                                            }
+                                            onClick={() =>
+                                                resumeSubscription.post(
+                                                    '/billing/subscription/resume',
+                                                    { preserveScroll: true },
+                                                )
+                                            }
+                                        >
+                                            {resumeSubscription.processing
+                                                ? 'Resuming...'
+                                                : 'Resume subscription'}
+                                        </Button>
+                                    </div>
+                                    {!canManageBilling ? (
+                                        <p className="text-xs text-muted-foreground">
+                                            Only team owners or admins can change
+                                            subscription state.
+                                        </p>
+                                    ) : null}
                                 </CardContent>
                             </Card>
                             {flash?.success ? (

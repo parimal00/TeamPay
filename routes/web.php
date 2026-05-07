@@ -3,7 +3,9 @@
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\PortalController;
+use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\TeamController;
+use App\Support\BillingSubscriptions;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -20,9 +22,14 @@ Route::get('/pricing', fn() => Inertia::render('pricing', [
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', function (Request $request) {
-        $team = $request->user()->currentTeam();
+        $actor = $request->user();
+        $team = $actor->currentTeam();
         $owner = $team?->owner;
-        $subscription = $owner?->subscription('default');
+        $subscription = $owner?->subscription(BillingSubscriptions::TEAM);
+        $actorRole = $team
+            ? $team->users()->where('users.id', $actor->id)->first()?->pivot?->role
+            : null;
+        $canManageBilling = $team && ($team->owner_id === $actor->id || $actorRole === 'admin');
 
         $plans = config('plans', []);
         $matchedPlanKey = null;
@@ -72,6 +79,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             'interval' => $matchedInterval,
             'renewal_date' => $renewalDate?->toDateString(),
             'seat_quantity' => $team ? $team->seatCount() : 0,
+            'can_manage_billing' => $canManageBilling,
+            'can_cancel' => $canManageBilling && ! $subscription->ended() && ! $subscription->onGracePeriod(),
+            'can_resume' => $canManageBilling && $subscription->onGracePeriod(),
         ] : null;
 
         return Inertia::render('dashboard', [
@@ -98,6 +108,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/billing/cancel', [CheckoutController::class, 'cancel'])->name('billing.cancel');
 
     Route::post('/billing/portal', [PortalController::class, 'store'])->name('billing.portal');
+    Route::post('/billing/subscription/cancel', [SubscriptionController::class, 'cancel'])->name('billing.subscription.cancel');
+    Route::post('/billing/subscription/resume', [SubscriptionController::class, 'resume'])->name('billing.subscription.resume');
     Route::get('/billing/invoices', [InvoiceController::class, 'index'])->name('billing.invoices');
     Route::get('/billing/invoices/download', [InvoiceController::class, 'download'])->name('billing.invoices.download');
 });
