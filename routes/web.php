@@ -21,15 +21,68 @@ Route::get('/pricing', fn() => Inertia::render('pricing', [
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', function (Request $request) {
         $team = $request->user()->currentTeam();
+        $owner = $team?->owner;
+        $subscription = $owner?->subscription('default');
+
+        $plans = config('plans', []);
+        $matchedPlanKey = null;
+        $matchedInterval = null;
+
+        foreach ($plans as $planKey => $plan) {
+            foreach ($plan['prices'] as $price) {
+                if ($subscription && $subscription->stripe_price === $price) {
+                    $matchedPlanKey = $planKey;
+                    $matchedInterval = array_search($price, $plan['prices'], true) ?: null;
+                    break 2;
+                }
+            }
+        }
+
+        $lifecycleStatus = null;
+        $renewalDate = null;
+
+        if ($subscription) {
+            if ($subscription->onTrial()) {
+                $lifecycleStatus = 'trialing';
+                $renewalDate = $subscription->trial_ends_at;
+            } elseif ($subscription->canceled()) {
+                $lifecycleStatus = 'canceled';
+                $renewalDate = $subscription->ends_at;
+            } elseif ($subscription->pastDue()) {
+                $lifecycleStatus = 'past_due';
+            } elseif ($subscription->active()) {
+                $lifecycleStatus = 'active';
+            } else {
+                $lifecycleStatus = $subscription->stripe_status;
+            }
+
+            if (! $renewalDate && in_array($lifecycleStatus, ['active', 'past_due'], true)) {
+                try {
+                    $renewalDate = $subscription->currentPeriodEnd();
+                } catch (\Throwable) {
+                    $renewalDate = null;
+                }
+            }
+        }
+
+        $subscriptionSnapshot = $subscription ? [
+            'status' => $lifecycleStatus,
+            'plan_key' => $matchedPlanKey,
+            'plan_name' => $matchedPlanKey ? ($plans[$matchedPlanKey]['name'] ?? null) : null,
+            'interval' => $matchedInterval,
+            'renewal_date' => $renewalDate?->toDateString(),
+            'seat_quantity' => $team ? $team->seatCount() : 0,
+        ] : null;
 
         return Inertia::render('dashboard', [
-            'plans' => config('plans'),
+            'plans' => $plans,
             'team' => $team ? [
                 'id' => $team->id,
                 'name' => $team->name,
                 'owner_id' => $team->owner_id,
                 'seat_count' => $team->seatCount(),
             ] : null,
+            'subscription' => $subscriptionSnapshot,
         ]);
     })->name('dashboard');
 
@@ -46,7 +99,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::post('/billing/portal', [PortalController::class, 'store'])->name('billing.portal');
     Route::get('/billing/invoices', [InvoiceController::class, 'index'])->name('billing.invoices');
-    Route::get('/billing/invoices/download', [InvoiceController::class, 'download'])->name('billing.invoices.download');    
+    Route::get('/billing/invoices/download', [InvoiceController::class, 'download'])->name('billing.invoices.download');
 });
 
 // Stripe webhook (NO auth middleware)

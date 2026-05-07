@@ -44,6 +44,15 @@ type TeamSummary = {
     seat_count: number;
 } | null;
 
+type SubscriptionSummary = {
+    status: string;
+    plan_key: string | null;
+    plan_name: string | null;
+    interval: string | null;
+    renewal_date: string | null;
+    seat_quantity: number;
+} | null;
+
 const pricePreview: Record<string, { monthly: string; yearly: string }> = {
     starter: { monthly: '$19', yearly: '$190' },
     pro: { monthly: '$59', yearly: '$590' },
@@ -52,15 +61,33 @@ const pricePreview: Record<string, { monthly: string; yearly: string }> = {
 export default function Dashboard({
     plans,
     team,
+    subscription,
 }: {
     plans: Record<string, PlanConfig>;
     team: TeamSummary;
+    subscription: SubscriptionSummary;
 }) {
     const { auth, flash } = usePage().props as {
         auth: { user: { name: string } };
         flash?: { success?: string; error?: string };
     };
     const planEntries = Object.entries(plans);
+    const subscriptionStatus = subscription?.status ?? 'none';
+    const subscriptionPlanName = subscription?.plan_name ?? 'No active plan';
+    const renewalDateLabel = subscription?.renewal_date
+        ? new Date(subscription.renewal_date).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+          })
+        : '—';
+    const seatQuantity = subscription?.seat_quantity ?? (team ? team.seat_count : 0);
+    const statusTone: Record<string, string> = {
+        trialing: 'bg-blue-500/15 text-blue-700 dark:text-blue-300',
+        active: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
+        past_due: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
+        canceled: 'bg-rose-500/15 text-rose-700 dark:text-rose-300',
+    };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -100,6 +127,47 @@ export default function Dashboard({
                                     </Link>
                                 </Button>
                             </div>
+
+                            <Card className="rounded-2xl border-border/70 mt-15">
+                                <CardHeader>
+                                    <CardTitle className="flex items-center justify-between gap-2">
+                                        <span>Subscription lifecycle</span>
+                                        <Badge
+                                            className={
+                                                statusTone[subscriptionStatus] ??
+                                                'bg-slate-500/15 text-slate-700 dark:text-slate-300'
+                                            }
+                                        >
+                                            {subscriptionStatus}
+                                        </Badge>
+                                    </CardTitle>
+                                    <CardDescription>
+                                        Current subscription visibility for this workspace.
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent className="grid gap-3 text-sm">
+                                    <div className="flex items-center justify-between rounded-xl border border-border/70 px-3 py-2">
+                                        <span className="text-muted-foreground">Plan</span>
+                                        <span className="font-medium">
+                                            {subscriptionPlanName}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between rounded-xl border border-border/70 px-3 py-2">
+                                        <span className="text-muted-foreground">
+                                            Renewal date
+                                        </span>
+                                        <span className="font-medium">{renewalDateLabel}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between rounded-xl border border-border/70 px-3 py-2">
+                                        <span className="text-muted-foreground">
+                                            Seat quantity
+                                        </span>
+                                        <span className="font-medium">
+                                            {seatQuantity}
+                                        </span>
+                                    </div>
+                                </CardContent>
+                            </Card>
                             {flash?.success ? (
                                 <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/8 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
                                     {flash.success}

@@ -11,7 +11,6 @@ class InvoiceController extends Controller
     public function index(Request $request): InertiaResponse
     {
         $user = $request->user();
-
         $invoices = method_exists($user, 'invoices')
             ? collect($user->invoices())->map(fn ($invoice) => [
                 'id' => $invoice->id,
