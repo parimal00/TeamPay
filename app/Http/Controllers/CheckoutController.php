@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Policies\TeamPolicy;
 use App\Support\BillingSubscriptions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -13,6 +14,12 @@ class CheckoutController extends Controller
 {
     public function store(Request $request)
     {
+        $actor = $request->user();
+        $team = $actor->currentTeam();
+
+        abort_unless($team, 403);
+        $this->authorize(TeamPolicy::MANAGE_BILLING, $team);
+
         $planKeys = array_keys(config('plans', []));
 
         $data = $request->validate([
@@ -28,7 +35,7 @@ class CheckoutController extends Controller
             ]);
         }
 
-        $checkout =  $request->user()
+        $checkout =  $actor
             ->newSubscription(BillingSubscriptions::TEAM, $stripePriceId)
             ->checkout([
                 'success_url' => route('billing.success'),

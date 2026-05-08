@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Policies\TeamPolicy;
 use App\Support\BillingSubscriptions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -61,14 +62,7 @@ class SubscriptionController extends Controller
         $team = $actor->currentTeam();
 
         abort_unless($team, 403);
-
-        $role = $team->users()
-            ->where('users.id', $actor->id)
-            ->first()?->pivot?->role;
-
-        $isAuthorized = $team->owner_id === $actor->id || $role === 'admin';
-
-        abort_unless($isAuthorized, 403);
+        $this->authorize(TeamPolicy::MANAGE_BILLING, $team);
 
         return $team->owner?->subscription(BillingSubscriptions::TEAM);
     }

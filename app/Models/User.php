@@ -66,4 +66,44 @@ class User extends Authenticatable
         // simplest: first owned team, else first joined team
         return $this->ownedTeams()->first() ?? $this->teams()->first();
     }
+
+    public function teamRole(?Team $team): ?string
+    {
+        if (! $team) {
+            return null;
+        }
+
+        if ($this->isTeamOwner($team)) {
+            return 'owner';
+        }
+
+        return $this->teams()
+            ->where('teams.id', $team->id)
+            ->first()?->pivot?->role;
+    }
+
+    public function isTeamOwner(?Team $team): bool
+    {
+        return $team && $team->owner_id === $this->id;
+    }
+
+    public function isTeamAdmin(?Team $team): bool
+    {
+        return $this->teamRole($team) === 'admin';
+    }
+
+    public function isTeamMember(?Team $team): bool
+    {
+        return in_array($this->teamRole($team), ['owner', 'admin', 'member'], true);
+    }
+
+    public function canManageTeamMembers(?Team $team): bool
+    {
+        return $this->isTeamOwner($team);
+    }
+
+    public function canManageBilling(?Team $team): bool
+    {
+        return $this->isTeamOwner($team);
+    }
 }
