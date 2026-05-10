@@ -114,7 +114,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/billing/invoices/download', [InvoiceController::class, 'download'])->name('billing.invoices.download');
 });
 
-// Stripe webhook (NO auth middleware)
+// Single source of truth: Stripe webhooks are handled by Laravel Cashier.
 Route::post('/stripe/webhook', [WebhookController::class, 'handleWebhook'])->name('cashier.webhook');
 
 Route::get('/checkout/success', function () {
