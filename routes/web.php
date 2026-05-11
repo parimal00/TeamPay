@@ -117,15 +117,4 @@ Route::middleware(['auth', 'verified'])->group(function () {
 // Single source of truth: Stripe webhooks are handled by Laravel Cashier.
 Route::post('/stripe/webhook', [WebhookController::class, 'handleWebhook'])->name('cashier.webhook');
 
-Route::get('/checkout/success', function () {
-    return redirect()->route('dashboard')->with('success', 'Subscription started.');
-})->name('checkout-success');
-
-
-Route::get('/checkout/failure', function () {
-    return redirect()->route('pricing')->with('error', 'Checkout cancelled.');
-})->name('checkout-cancel');
-Route::get('/test', function () {
-    return view('app');
-});
 require __DIR__ . '/settings.php';

@@ -44,4 +44,18 @@ class CheckoutController extends Controller
 
         return Inertia::location($checkout->url);
     }
+
+    public function success(): RedirectResponse
+    {
+        return redirect()
+            ->route('dashboard')
+            ->with('success', 'Subscription started.');
+    }
+
+    public function cancel(): RedirectResponse
+    {
+        return redirect()
+            ->route('pricing')
+            ->with('error', 'Checkout cancelled.');
+    }
 }
